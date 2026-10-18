@@ -22,8 +22,18 @@ func TestTheQueuePacksBothModels(t *testing.T) {
 	const (
 		bn1, bn2, bn3 = "DATA/a/Marymoor_20260912_010000.wav", "DATA/a/Marymoor_20260912_020000.wav", "DATA/a/Marymoor_20260912_030000.wav"
 	)
+	// The fake sees a run start only once its task has claimed and copied
+	// its file, so two tasks started together can reach it in either order.
+	// The newer card's runs are staggered so the queue's decisions never
+	// coincide: bn1 ends at 40 ms and bn3 starts; bn2 ends at 100 ms and
+	// Perch starts beside bn3, which runs until 190 ms.
 	f.bird.took = func(model, audio string) time.Duration {
-		if model == birdnet.ModelPerch && audio == owlFile {
+		switch {
+		case model == birdnet.ModelPerch && audio == owlFile:
+			return 150 * time.Millisecond
+		case model == birdnet.ModelBirdNET && audio == bn2:
+			return 100 * time.Millisecond
+		case model == birdnet.ModelBirdNET && audio == bn3:
 			return 150 * time.Millisecond
 		}
 		return 40 * time.Millisecond
